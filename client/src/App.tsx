@@ -1,5 +1,6 @@
-import ClientChat from './client-chat/index';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthComponent } from './auth';
+import Chat from './client-chat';
 
 export default function App() {
     console.log('🛠 App.tsx được render');
@@ -7,7 +8,8 @@ export default function App() {
     return (
         <Router>
             <Routes>
-                <Route path="/" element={<ClientChat />} />
+                <Route path="/" element={<AuthComponent />} />
+                <Route path="/chat" element={<Chat />} />
             </Routes>
         </Router>
     );

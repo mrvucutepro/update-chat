@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
-const SECRET_KEY = "your_secret_key"; // Đổi thành key bảo mật thật
+const SECRET_KEY = "your_secret_key"; 
 
 export function generateToken(payload: object): string {
     return jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
