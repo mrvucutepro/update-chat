@@ -1,20 +1,35 @@
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { AuthenticatedRequest } from '../types/express';
+import dotenv from 'dotenv';
 
-const SECRET_KEY = "your_secret_key"; 
+dotenv.config();
+export const authenticateToken = (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    const token = req.header('Authorization')?.split(' ')[1];
+    const jwtSecret = process.env.JWT_SECRET as string;
+    if (!token) {
+        res.status(401).json({ message: 'Access denied' });
+        return;
+    }
 
-export function generateToken(payload: object): string {
-    return jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
-}
+    try {
+        const decoded = jwt.verify(token, jwtSecret);
+        req.user = decoded as any;
+        next();
+    } catch {
+        res.status(403).json({ message: 'Invalid token' });
+    }
+};
 
-export function verifyToken(token: string) {
-    return jwt.verify(token, SECRET_KEY);
-}
-
-export function hashPassword(password: string): string {
-    return bcrypt.hashSync(password, 10);
-}
-
-export function comparePassword(password: string, hash: string): boolean {
-    return bcrypt.compareSync(password, hash);
-}
+export const authorizeRole = (role: string) => {
+    return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        if (!req.user || req.user.role !== role) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+        next();
+    };
+};

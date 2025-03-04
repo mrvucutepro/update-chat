@@ -1,50 +1,42 @@
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+// import { Request, Response } from 'express';
+// import { loginUser } from '../database/db';
+
+// export const login = async (req: Request, res: Response): Promise<void> => {
+//     try {
+//         const { username, password } = req.body;
+//         const token = await loginUser(username, password);
+//         if (!token) {
+//             res.status(401).json({ message: 'Invalid credentials' });
+//             return;
+//         }
+//         res.json({ token });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Server error' });
+//     }
+// };
 import { Request, Response } from 'express';
-import cookieParser from 'cookie-parser';
+import bcrypt from 'bcryptjs';
+import { generateToken } from '../utils/jwtUtils';
+import { AuthenticatedRequest } from '../types/express';
+import { findUserByUsername } from '../models/authModel';
 
-const router = express.Router();
-const SECRET_KEY = 'your_secret_key';
-
-const users: { username: string; passwordHash: string }[] = [];
-
-router.use(cookieParser());
-
-router.post('/register', async (req: Request, res: Response) => {
+export const login = (req: Request, res: Response) => {
     const { username, password } = req.body;
-    const passwordHash = await bcrypt.hash(password, 10);
+    const user = findUserByUsername(username);
 
-    users.push({ username, passwordHash });
-    res.json({ message: 'User registered successfully!' });
-});
-
-router.post(
-    '/login',
-    async (req: express.Request, res: express.Response): Promise<void> => {
-        const { username, password } = req.body;
-        const user = users.find((u) => u.username === username);
-
-        if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-            res.status(401).json({ message: 'Invalid credentials' });
-            return;
-        }
-
-        const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: '1h' });
-
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-        });
-
-        res.json({ message: 'Login successful!' });
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+        res.status(401).json({ message: 'Invalid credentials' });
+        return;
     }
-);
 
-router.post('/logout', (req: Request, res: Response) => {
-    res.clearCookie('token');
-    res.json({ message: 'Logged out successfully!' });
-});
+    const token = generateToken({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+    });
+    res.json({ token });
+};
 
-export default router;
+export const getProfile = (req: AuthenticatedRequest, res: Response) => {
+    res.json({ user: req.user });
+};
