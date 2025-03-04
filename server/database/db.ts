@@ -16,7 +16,10 @@ db.exec(`
 
 const users = [
     { username: 'admin01', password: '123123', role: 'admin' },
+    { username: 'admin02', password: '123123', role: 'admin' },
+
     { username: 'user01', password: '123123', role: 'user' },
+    { username: 'user02', password: '123123', role: 'user' },
 ];
 
 users.forEach(({ username, password, role }) => {
