@@ -1,10 +1,22 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/authMiddleware';
-import { getProfile, login } from '../controller/authController';
+import { createSession, closeSession } from '../controller/sessionController';
+import {
+    markMessageAsRead,
+    sendMessage,
+} from '../controller/messageController';
+import { addCounselorToSession } from '../controller/sessionCounselorController';
 
 const router = express.Router();
 
-router.post('/login', login);
-router.get('/profile', authenticateToken, getProfile);
+// Session
+router.post('/sessions', createSession);
+router.put('/sessions/end', closeSession);
+
+// Counselor
+router.post('/sessions/counselors', addCounselorToSession);
+
+// Message
+router.post('/messages', sendMessage);
+router.put('/messages/:message_id/read', markMessageAsRead);
 
 export default router;
