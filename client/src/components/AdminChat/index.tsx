@@ -1,98 +1,82 @@
-'use client';
+import { useEffect, useState } from 'react';
+import { customFetch } from '../../utils/customFetch';
+import UserList from '../UserList';
 
-import { AuthContext } from '@/store/AuthContext';
-import { useState, useEffect, useContext } from 'react';
-import io from 'socket.io-client';
+interface AdminChatProps {
+    onLogout: () => void;
+}
 
-const socket = io('http://localhost:5000', {
-    transports: ['polling', 'websocket'],
-});
-
-const AdminChat = () => {
-    const [messages, setMessages] = useState<
-        { sender: string; text: string }[]
-    >([]);
-    const { user } = useContext(AuthContext)!;
-    const [message, setMessage] = useState('');
+interface Message {
+    message: string;
+}
+export default function AdminChat({ onLogout }: AdminChatProps) {
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!user) return;
-        socket.emit('register-user', { username: user.username });
+        if (!selectedUser) return;
 
-        socket.on('receive-message-admin', (data) => {
-            setMessages((prev) => [
-                ...prev,
-                { sender: data.sender, text: data.text },
-            ]);
-        });
-        socket.on('receive-message-client', (data) => {
-            setMessages((prev) => [
-                ...prev,
-                { sender: data.sender, text: data.text },
-            ]);
-        });
-        return () => {
-            socket.off('receive-message-admin');
-            socket.off('receive-message-client');
-        };
-    }, [user]);
+        async function fetchMessages() {
+            try {
+                const response = await customFetch('/api/admin/messages');
+                setMessages(response);
+            } catch (error) {
+                console.error((error as Error).message);
+            }
+        }
+        fetchMessages();
+    }, [setSelectedUser]);
 
-    const sendMessage = () => {
-        if (message.trim() === '') return;
-
-        const newMessage = { sender: user.username, text: message };
-        setMessages((prev) => [...prev, newMessage]);
-
-        socket.emit('send-message-admin', newMessage);
-        setMessage('');
+    const sendMessage = async () => {
+        if (!newMessage.trim()) return;
+        try {
+            const response = await customFetch('/api/admin/sendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: newMessage }),
+            });
+            setMessages([...messages, response]);
+            setNewMessage('');
+        } catch (error) {
+            console.error((error as Error).message);
+        }
     };
 
     return (
-        <div className="w-full max-w mx-auto border shadow-lg flex flex-col h-[50%] bg-white">
-            <div className="bg-orange-500 py-2 px-4 text-center font-semibold">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+            <h2 className="text-2xl font-bold mb-4 text-gray-500">
                 Admin Chat
+            </h2>
+            <button
+                onClick={onLogout}
+                className="mb-4 bg-red-500 text-white py-2 px-4 rounded"
+            >
+                Logout
+            </button>
+            <UserList onSelectUser={setSelectedUser} />
+            <div className="w-full max-w-md bg-white p-4 rounded shadow-md mb-4">
+                {messages.map((msg, index) => (
+                    <p key={index} className="p-2 border-b">
+                        {msg.message}
+                    </p>
+                ))}
             </div>
-            <div>
-                <div className="text-gray-500 ml-12">time</div>
-                <div className="flex">
-                    <div className="bg-red-400 mt-3.5 w-8 h-8 rounded-full" />
-                    <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                        {messages.map((msg, index) => (
-                            <div
-                                key={index}
-                                className={`p-2 rounded-md max-w-xs ${
-                                    msg.sender === user.username
-                                        ? 'bg-orange-500 text-white self-end ml-auto'
-                                        : 'bg-gray-200 font-light text-gray-700'
-                                }`}
-                            >
-                                <span className="block text-sm font-semibold">
-                                    <p>{msg.text}</p>
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            <div className="p-2 border-t flex">
+            <div className="flex w-full max-w-md">
                 <input
                     type="text"
-                    className="flex-1 p-2 border rounded-l-md outline-none"
-                    placeholder="Type a message..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                    placeholder=""
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="flex-1 p-2 border rounded-l text-black"
                 />
                 <button
-                    className="bg-red-600 text-white px-4 rounded-r-md"
                     onClick={sendMessage}
+                    className="bg-orange-500 text-white py-2 px-4 rounded-r"
                 >
                     Send
                 </button>
             </div>
         </div>
     );
-};
-
-export default AdminChat;
+}

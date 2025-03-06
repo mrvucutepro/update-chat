@@ -22,3 +22,10 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.my-div {
+  width: 100%; /* Phủ toàn bộ chiều rộng */
+  height: 300px; /* Độ cao tùy chỉnh */
+  background-image: url('/client/src/app/admin/assets/images/blue_back.gif'); /* Đường dẫn đến ảnh */
+  background-repeat: repeat; /* Lặp lại cả chiều ngang và dọc */
+}

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { AuthProvider } from '@/store/AuthContext';
 
 export const metadata: Metadata = {
     title: 'Chat App Professionals',
@@ -14,9 +13,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body>
-                <AuthProvider>{children}</AuthProvider>
-            </body>
+            <body>{children}</body>
         </html>
     );
 }

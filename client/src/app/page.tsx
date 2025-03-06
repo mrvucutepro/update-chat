@@ -1,56 +1,80 @@
 'use client';
-import { LoginGuard } from '@/middleware/LoginGuard';
-import { AuthContext } from '@/store/AuthContext';
-import { useState, useContext } from 'react';
+import { useState, useEffect } from 'react';
+import { loginAdmin, logoutAdmin } from '../utils/api';
+import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation';
 
-export default function LoginPage() {
-    const { login } = useContext(AuthContext)!;
+export default function AdminLogin() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState(null);
+    const [token, setToken] = useState(Cookies.get('adminToken'));
+    const router = useRouter();
+    useEffect(() => {
+        const storedToken = Cookies.get('adminToken');
+        if (storedToken) {
+            setToken(storedToken);
+            router.push('/admin');
+        }
+    }, [router]);
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        await login(username, password);
+        try {
+            const data = await loginAdmin(username, password);
+            Cookies.set('adminToken', data.token, { expires: 1 });
+            setToken(data.token);
+            router.push('/admin');
+        } catch (err) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setError((err as any).message);
+        }
     };
 
+    const handleLogout = () => {
+        logoutAdmin();
+        Cookies.remove('adminToken');
+        setToken('');
+        router.push('/');
+    };
     return (
-        <LoginGuard>
-            <div className=" flex items-center justify-center h-screen bg-gray-100">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+            <h2 className="text-2xl font-bold mb-4 text-black">Admin Login</h2>
+            {!token ? (
                 <form
                     onSubmit={handleLogin}
-                    className="p-6 bg-[#6a5548] shadow-lg rounded-lg w-[30%]"
+                    className="bg-white p-6 rounded-lg shadow-md w-80 text-black"
                 >
-                    <h2 className="text-2xl font-bold mb-4">Sign In</h2>
-                    <div className="flex justify-between items-center">
-                        <span>Username</span>
-                        <input
-                            type="text"
-                            placeholder="Username"
-                            className=" p-2  mb-2 text-black rounded w-[70%] bg-white"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex justify-between items-center ">
-                        <span>Password</span>
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            className=" p-2  mb-4 text-black rounded w-[70%] bg-white"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex justify-center">
-                        <button
-                            type="submit"
-                            className="w-[40%]  bg-orange-500 text-white py-2"
-                        >
-                            Login
-                        </button>
-                    </div>
+                    <input
+                        type="text"
+                        placeholder="Username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full p-2 mb-3 border rounded"
+                    />
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full p-2 mb-3 border rounded"
+                    />
+                    <button
+                        type="submit"
+                        className="w-full bg-orange-500 text-white py-2 rounded"
+                    >
+                        Login
+                    </button>
                 </form>
-            </div>
-        </LoginGuard>
+            ) : (
+                <button
+                    onClick={handleLogout}
+                    className="bg-red-500 text-white py-2 px-4 rounded"
+                >
+                    Logout
+                </button>
+            )}
+            {error && <p className="text-red-500 mt-2">{error}</p>}
+        </div>
     );
 }
