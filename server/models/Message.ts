@@ -7,7 +7,6 @@ export interface IMessage extends Document {
     sender_id: IUser['_id'];
     message: string;
     is_internal: boolean;
-    message_status: 'sent' | 'delivered' | 'read';
     sent_at: Date;
 }
 
@@ -34,7 +33,7 @@ const MessageSchema: Schema = new Schema({
         type: String,
         enum: ['sent', 'delivered', 'read'],
         default: 'sent',
-    },
+    }, // Trạng thái tin nhắn
     sent_at: {
         type: Date,
         default: Date.now,

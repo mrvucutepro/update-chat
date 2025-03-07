@@ -4,6 +4,7 @@ import { IUser } from './User';
 export interface ISession extends Document {
     user_id: IUser['_id'];
     is_active: boolean;
+    status: string;
     created_at: Date;
 }
 
@@ -17,6 +18,8 @@ const SessionSchema: Schema = new Schema({
         type: Boolean,
         default: true,
     },
+    status: { type: String, enum: ['active', 'closed'], default: 'active' },
+
     created_at: {
         type: Date,
         default: Date.now,

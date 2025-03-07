@@ -1,60 +1,52 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import User, { IUser } from '../models/User';
-
-interface AuthRequest extends Request {
-    user?: IUser;
+import { IUser } from '../models/User'; // Assuming IUser is the interface for User
+import { verifyToken } from '../utils/jwt';
+import User from '../models/User';
+declare global {
+    namespace Express {
+        interface Request {
+            user?: IUser;
+        }
+    }
 }
 
-const auth = async (
-    req: AuthRequest,
+export const authenticate = async (
+    req: Request,
     res: Response,
     next: NextFunction
-): Promise<void> => {
+) => {
     try {
         const token = req.header('Authorization')?.replace('Bearer ', '');
 
         if (!token) {
-            res.status(401).json({ message: 'No auth token provided' });
-            return;
+            throw new Error('Authentication failed: No token provided');
         }
 
-        const decoded = jwt.verify(
-            token,
-            process.env.JWT_SECRET || 'default_secret'
-        ) as { id: string };
-        const user = await User.findById(decoded.id);
+        const decoded = verifyToken(token) as { userId: string; role: string };
+        const user = await User.findById(decoded.userId);
 
         if (!user) {
-            res.status(401).json({ message: 'User not found' });
-            return;
+            throw new Error('Authentication failed: User not found');
         }
 
         req.user = user;
         next();
     } catch (error) {
-        res.status(401).json({ message: 'Not authorized' });
-    }
-};
-
-export const counselorAuth = async (
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-): Promise<void> => {
-    try {
-        await auth(req, res, () => {
-            if (req.user?.role !== 'counselor') {
-                res.status(403).json({
-                    message: 'Access denied, not a counselor',
-                });
-                return;
-            }
-            next();
+        res.status(401).json({
+            message: 'Authentication failed',
+            error: (error as Error).message,
         });
-    } catch (error) {
-        res.status(401).json({ message: 'Not authorized' });
     }
 };
 
-export default auth;
+export const authorize = (roles: string[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            res.status(403).json({
+                message: 'Unauthorized: You do not have permission',
+            });
+            return;
+        }
+        next();
+    };
+};

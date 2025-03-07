@@ -1,8 +1,10 @@
 import { io } from 'socket.io-client';
-import Cookies from 'js-cookie';
 
-const token = Cookies.get('adminToken');
-export const socket = io('http://localhost:5000', {
-    auth: { token },
-    transports: ['websocket'],
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// Tạo kết nối Socket.IO
+const socket = io(SOCKET_URL, {
+    autoConnect: false,
 });
+
+export default socket;
